@@ -8,6 +8,7 @@
     "type": "git",
     "url": "https://github.com/trevSmart/salesforce-org-quick-pick"
   },
+  "icon": "resources/logo.png",
   "engines": {
     "vscode": "^1.74.0"
   },
