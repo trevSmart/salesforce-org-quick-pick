@@ -20,7 +20,33 @@
         "command": "salesforce-org-quick-pick.switchOrg",
         "title": "Switch Salesforce Org"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Salesforce Org Quick Pick",
+      "properties": {
+        "salesforceOrgQuickPick.orgFilters": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Array of glob patterns to filter which Salesforce org aliases to show. If empty, all orgs are shown. Examples: 'DEV*', 'PROD', '*TEST*'"
+        },
+        "salesforceOrgQuickPick.filterMode": {
+          "type": "string",
+          "enum": [
+            "include",
+            "exclude"
+          ],
+          "enumDescriptions": [
+            "Only show orgs that match the filter patterns",
+            "Show all orgs except those that match the filter patterns"
+          ],
+          "default": "include",
+          "description": "Whether to include or exclude orgs matching the filter patterns"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
