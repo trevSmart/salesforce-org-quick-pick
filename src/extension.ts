@@ -7,28 +7,27 @@ const minimatch = require('minimatch');
 /**
  * Builds an interactive tooltip with clickable Salesforce org aliases
  * @param aliases Array of alias names
- * @param aliasMap Map of alias to username for display
  * @returns MarkdownString with clickable command links
  */
-function buildInteractiveTooltip(aliases: string[], aliasMap: Map<string, string>): vscode.MarkdownString {
+function buildInteractiveTooltip(aliases: string[]): vscode.MarkdownString {
   const md = new vscode.MarkdownString(undefined, true);
   md.isTrusted = true;
 
   // Helper function to encode command arguments
   const enc = (args: unknown[]) => encodeURIComponent(JSON.stringify(args));
 
-  if (aliases.length > 0) {
-    md.appendMarkdown('**Available Salesforce Orgs**\n\n');
+  // Centered title
+  md.appendMarkdown('<div align="center">**Salesforce Org Quick Pick**</div>\n\n');
 
+  if (aliases.length > 0) {
     aliases.forEach(alias => {
-      const username = aliasMap.get(alias) || alias;
       // Create clickable link for each alias that calls the switch command
       const switchLink = `command:salesforce-org-quick-pick.switchToOrg?${enc([alias])}`;
-      md.appendMarkdown(`$(plug) [${alias} - ${username}](${switchLink} "Switch to ${alias}")\n\n`);
+      md.appendMarkdown(`$(plug) [${alias}](${switchLink} "Switch to ${alias}")\n\n`);
     });
 
     md.appendMarkdown('---\n');
-    md.appendMarkdown('[$(list-unordered) Show all with filter](command:salesforce-org-quick-pick.switchOrg "Open org selector with built-in filter")');
+    md.appendMarkdown('[$(list-unordered) Pick in command center](command:salesforce-org-quick-pick.switchOrg "Open org selector with built-in filter")');
   } else {
     md.appendMarkdown('**No Salesforce Orgs Found**\n\n');
     md.appendMarkdown('Please authorize orgs using Salesforce CLI first.');
@@ -73,8 +72,9 @@ function updateSfdxConfig(username: string) {
  * Switches to the specified Salesforce org
  * @param alias The org alias to switch to
  * @param statusBarItem The status bar item to update
+ * @param openOrgItem The open org status bar item to update
  */
-function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem) {
+function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem, openOrgItem?: vscode.StatusBarItem) {
   // Get the username for this alias
   const { aliasMap } = getSalesforceAliases();
   const username = aliasMap.get(alias);
@@ -83,8 +83,8 @@ function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem) {
     // Update sfdx config file
     updateSfdxConfig(username);
 
-    // Update status bar to show selected org with plug icon
-    statusBarItem.text = `$(plug) ${alias}`;
+    // Update status bar
+    updateStatusBarFromConfig(statusBarItem, openOrgItem);
 
     // Show confirmation message
     vscode.window.showInformationMessage(`Switched to Salesforce org: ${alias}`);
@@ -158,8 +158,9 @@ function getCurrentDefaultOrg(): string | null {
 /**
  * Updates the status bar based on current default org
  * @param statusBarItem The status bar item to update
+ * @param openOrgItem The open org status bar item to update
  */
-function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem) {
+function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgItem?: vscode.StatusBarItem) {
   const defaultOrg = getCurrentDefaultOrg();
 
   if (defaultOrg) {
@@ -168,14 +169,25 @@ function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem) {
     const alias = Array.from(aliasMap.entries()).find(([_, username]) => username === defaultOrg)?.[0] || defaultOrg;
 
     statusBarItem.text = `$(plug) ${alias}`;
+
+    // Show open org button
+    if (openOrgItem) {
+      openOrgItem.text = '$(window)';
+      openOrgItem.show();
+    }
   } else {
     statusBarItem.text = 'Pick org';
+
+    // Hide open org button when no org is selected
+    if (openOrgItem) {
+      openOrgItem.hide();
+    }
   }
 
   // Update tooltip
-  const { aliases: currentAliases, aliasMap: currentAliasMap } = getSalesforceAliases();
+  const { aliases: currentAliases } = getSalesforceAliases();
   const filteredCurrentAliases = filterAliases(currentAliases);
-  statusBarItem.tooltip = buildInteractiveTooltip(filteredCurrentAliases, currentAliasMap);
+  statusBarItem.tooltip = buildInteractiveTooltip(filteredCurrentAliases);
 }
 
 /**
@@ -223,12 +235,17 @@ export function activate(context: vscode.ExtensionContext) {
   // Apply filters based on configuration
   const filteredAliases = filterAliases(allAliases);
 
+  // Create status bar item for opening current org
+  const openOrgItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 15433);
+  openOrgItem.command = 'salesforce-org-quick-pick.openCurrentOrg';
+  openOrgItem.tooltip = 'Open default org in browser';
+
   // Create status bar item for org switching
-  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 15432);
   statusBarItem.command = 'salesforce-org-quick-pick.switchOrg';
 
   // Initial update from config
-  updateStatusBarFromConfig(statusBarItem);
+  updateStatusBarFromConfig(statusBarItem, openOrgItem);
   statusBarItem.show();
 
   // Setup file watcher for sfdx-config.json to detect external changes
@@ -239,7 +256,7 @@ export function activate(context: vscode.ExtensionContext) {
   const configWatcher = fs.watchFile(configFilePath, { persistent: true, interval: 1000 }, (curr, prev) => {
     if (curr.mtime !== prev.mtime) {
       console.log('sfdx-config.json changed, updating status bar');
-      updateStatusBarFromConfig(statusBarItem);
+      updateStatusBarFromConfig(statusBarItem, openOrgItem);
     }
   });
 
@@ -248,7 +265,7 @@ export function activate(context: vscode.ExtensionContext) {
   const aliasWatcher = fs.watchFile(aliasFilePath, { persistent: true, interval: 1000 }, (curr, prev) => {
     if (curr.mtime !== prev.mtime) {
       console.log('alias.json changed, updating status bar');
-      updateStatusBarFromConfig(statusBarItem);
+      updateStatusBarFromConfig(statusBarItem, openOrgItem);
     }
   });
 
@@ -268,30 +285,57 @@ export function activate(context: vscode.ExtensionContext) {
   // Command to show QuickPick with filtered aliases
   let disposable = vscode.commands.registerCommand('salesforce-org-quick-pick.switchOrg', async function () {
     // Get fresh filtered aliases in case configuration changed
-    const { aliases: currentAliases } = getSalesforceAliases();
+    const { aliases: currentAliases, aliasMap } = getSalesforceAliases();
     const filteredCurrentAliases = filterAliases(currentAliases);
 
-    const selectedOrg = await vscode.window.showQuickPick(filteredCurrentAliases, {
+    // Create QuickPick items with alias - username format
+    const quickPickItems = filteredCurrentAliases.map(alias => ({
+      label: alias,
+      description: aliasMap.get(alias) || alias,
+      detail: `${alias} - ${aliasMap.get(alias) || alias}`
+    }));
+
+    const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
       placeHolder: 'Select a Salesforce org to switch to',
-      matchOnDescription: false,
-      matchOnDetail: false
+      matchOnDescription: true,
+      matchOnDetail: true
     });
 
-    if (selectedOrg) {
-      switchToOrg(selectedOrg, statusBarItem);
+    if (selectedItem) {
+      switchToOrg(selectedItem.label, statusBarItem);
     }
   });
 
   // Command to switch directly to a specific org (called from tooltip links)
   let switchToOrgDisposable = vscode.commands.registerCommand('salesforce-org-quick-pick.switchToOrg', async function (alias: string) {
-    switchToOrg(alias, statusBarItem);
+    switchToOrg(alias, statusBarItem, openOrgItem);
+  });
+
+  // Command to open current org in browser
+  let openCurrentOrgDisposable = vscode.commands.registerCommand('salesforce-org-quick-pick.openCurrentOrg', async function () {
+    const currentOrg = getCurrentDefaultOrg();
+    if (currentOrg) {
+      try {
+        // Execute sf org open command
+        const terminal = vscode.window.createTerminal('Salesforce Org');
+        terminal.sendText(`sf org open --target-org ${currentOrg}`);
+        terminal.show();
+
+        vscode.window.showInformationMessage(`Opening Salesforce org: ${currentOrg}`);
+      } catch (error) {
+        console.error('Error opening org:', error);
+        vscode.window.showErrorMessage('Failed to open Salesforce org. Make sure Salesforce CLI is installed.');
+      }
+    } else {
+      vscode.window.showWarningMessage('No Salesforce org is currently selected.');
+    }
   });
 
   // Function to update tooltip when configuration changes
   const updateTooltip = () => {
     const { aliases: currentAliases, aliasMap: currentAliasMap } = getSalesforceAliases();
     const filteredCurrentAliases = filterAliases(currentAliases);
-    statusBarItem.tooltip = buildInteractiveTooltip(filteredCurrentAliases, currentAliasMap);
+    statusBarItem.tooltip = buildInteractiveTooltip(filteredCurrentAliases);
   };
 
   // Listen for configuration changes
@@ -302,8 +346,10 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(statusBarItem);
+  context.subscriptions.push(openOrgItem);
   context.subscriptions.push(disposable);
   context.subscriptions.push(switchToOrgDisposable);
+  context.subscriptions.push(openCurrentOrgDisposable);
   context.subscriptions.push(configChangeDisposable);
   context.subscriptions.push(configFileWatcherDisposable);
   context.subscriptions.push(aliasFileWatcherDisposable);
