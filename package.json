@@ -2,8 +2,12 @@
   "name": "salesforce-org-quick-pick",
   "displayName": "Salesforce Org Quick Pick",
   "description": "Quickly switch between Salesforce orgs from the status bar without breaking your flow.",
-  "version": "0.0.1",
+  "version": "0.0.13",
   "author": "trevSmart",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trevSmart/salesforce-org-quick-pick"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -44,9 +48,31 @@
           ],
           "default": "include",
           "description": "Whether to include or exclude orgs matching the filter patterns"
+        },
+        "salesforceOrgQuickPick.browser": {
+          "type": "string",
+          "enum": [
+            "default",
+            "chrome",
+            "firefox",
+            "safari",
+            "edge"
+          ],
+          "enumDescriptions": [
+            "Use system default browser",
+            "Google Chrome",
+            "Mozilla Firefox",
+            "Safari",
+            "Microsoft Edge"
+          ],
+          "default": "default",
+          "description": "Browser to use when opening Salesforce orgs"
         }
       }
     }
+  },
+  "dependencies": {
+    "minimatch": "^9.0.4"
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -54,10 +80,13 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "bump-version": "node -e \"const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); const [major, minor, patch] = pkg.version.split('.').map(Number); pkg.version = major + '.' + minor + '.' + (patch + 1); fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2)); console.log('Version bumped to', pkg.version);\"",
+    "package": "mkdir -p dist && npx vsce package --out dist",
+    "clean": "rm -rf dist",
+    "install-extension": "npm run bump-version && npm run compile && npm run clean && npm run package && cursor --install-extension dist/salesforce-org-quick-pick-*.vsix --force"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "16.x",
     "@types/vscode": "^1.74.0",

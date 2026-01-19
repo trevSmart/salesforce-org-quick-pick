@@ -30,6 +30,13 @@ You can configure which orgs to show in the tooltip by setting filters in your V
   - `"include"`: Only show orgs matching the patterns (default)
   - `"exclude"`: Show all orgs except those matching the patterns
 
+- **`salesforceOrgQuickPick.browser`**: Browser selection
+  - `"default"`: Use system default browser (default)
+  - `"chrome"`: Google Chrome
+  - `"firefox"`: Mozilla Firefox
+  - `"safari"`: Safari
+  - `"edge"`: Microsoft Edge
+
 ### Example Configuration
 
 ```json
@@ -48,7 +55,7 @@ This will show only orgs whose aliases start with "DEV" or contain "TEST".
 
 1. Open VS Code settings (`Ctrl/Cmd + ,`)
 2. Search for "Salesforce Org Quick Pick"
-3. Configure the filters as needed
+3. Configure the filters and browser preferences as needed
 
 ## How to Use
 
@@ -64,9 +71,10 @@ This will show only orgs whose aliases start with "DEV" or contain "TEST".
 3. **Click** "Pick in command center" for full selector with search and detailed view
 
 ### Browser Integration
-- **Window icon (🪟)**: Opens the default Salesforce org in your default browser
+- **Window icon (🪟)**: Opens the default Salesforce org in your selected browser
 - Tooltip: "Open default org in browser"
-- Uses `sf org open` command in a new terminal
+- Executes `sf org open` silently in the background (no terminal shown)
+- Supports multiple browsers via settings
 - Positioned to the right of the org picker
 - Only visible when an org is selected
 

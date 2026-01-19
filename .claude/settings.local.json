@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/marcpla/Documents/Feina/Projectes/Salesforce Org Quick Pick/**)"
+    ]
+  }
+}

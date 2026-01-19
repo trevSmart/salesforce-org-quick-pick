@@ -1,0 +1,14 @@
+{
+	"actionButtons": {
+		"commands": [
+			{
+				"useVsCodeApi": true,
+				"command": "workbench.action.tasks.build",
+				"name": "Install Extension"
+			}
+		],
+		"defaultColor": "white",
+		"reloadButton": "↻",
+		"loadNpmCommands": false
+	}
+}

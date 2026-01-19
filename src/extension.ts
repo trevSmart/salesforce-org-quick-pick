@@ -2,7 +2,17 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
-const minimatch = require('minimatch');
+import { minimatch } from 'minimatch';
+const { exec } = require('child_process');
+
+// Logging utility function
+function log(message: string) {
+  console.log('[SF Org Quick Pick]', message);
+  const outputChannel = (global as any).sfOrgOutputChannel as vscode.OutputChannel;
+  if (outputChannel) {
+    outputChannel.appendLine(`[SF Org Quick Pick] ${message}`);
+  }
+}
 
 /**
  * Builds an interactive tooltip with clickable Salesforce org aliases
@@ -21,13 +31,13 @@ function buildInteractiveTooltip(aliases: string[]): vscode.MarkdownString {
 
   if (aliases.length > 0) {
     aliases.forEach(alias => {
-      // Create clickable button for each alias that calls the switch command
+      // Create clickable link for each alias that calls the switch command
       const switchLink = `command:salesforce-org-quick-pick.switchToOrg?${enc([alias])}`;
-      md.appendMarkdown(`<div style="margin: 4px 0;">$(plug) <a href="${switchLink}" style="color: #d4af37; text-decoration: none; cursor: pointer;">${alias}</a></div>\n`);
+      md.appendMarkdown(`$(plug) [${alias}](${switchLink} "Switch to ${alias}")\n\n`);
     });
 
-    md.appendMarkdown('---\n');
-    md.appendMarkdown(`<div style="margin-top: 8px;">$(layout-menubar) <a href="command:salesforce-org-quick-pick.switchOrg" style="color: #d4af37; text-decoration: none; cursor: pointer;">Pick in command center</a></div>\n`);
+    md.appendMarkdown('---\n\n');
+    md.appendMarkdown(`$(layout-menubar) [Pick in command center](command:salesforce-org-quick-pick.switchOrg "Open org selector with built-in filter")\n`);
   } else {
     md.appendMarkdown('**No Salesforce Orgs Found**\n\n');
     md.appendMarkdown('Please authorize orgs using Salesforce CLI first.');
@@ -64,7 +74,7 @@ function updateSfdxConfig(username: string) {
     // Write back to file
     fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2));
   } catch (error) {
-    console.error('Error updating sfdx config:', error);
+    log(`Error updating sfdx config: ${error}`);
   }
 }
 
@@ -80,8 +90,21 @@ function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem, openOrg
   const username = aliasMap.get(alias);
 
   if (username) {
-    // Update sfdx config file
+    // Update sfdx config file (for backward compatibility)
     updateSfdxConfig(username);
+
+    // Use Salesforce CLI to set default org
+    exec(`sf config set target-org "${alias}"`, (error: any, stdout: any, stderr: any) => {
+      if (error) {
+        log(`Error setting default org with CLI: ${error}`);
+        vscode.window.showErrorMessage(`Failed to set default org: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        log(`sf config set target-org stderr: ${stderr}`);
+      }
+      log(`sf config set target-org stdout: ${stdout}`);
+    });
 
     // Update status bar
     updateStatusBarFromConfig(statusBarItem, openOrgItem);
@@ -89,9 +112,9 @@ function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem, openOrg
     // Show confirmation message
     vscode.window.showInformationMessage(`Switched to Salesforce org: ${alias}`);
 
-    console.log(`Selected org: ${alias} (${username})`);
+    log(`Selected org: ${alias} (${username})`);
   } else {
-    console.error(`Could not find username for alias: ${alias}`);
+    log(`Could not find username for alias: ${alias}`);
   }
 }
 
@@ -110,14 +133,14 @@ function filterAliases(aliases: string[]): string[] {
     return aliases;
   }
 
-  return aliases.filter(alias => {
+  const filtered = aliases.filter(alias => {
     // Check if alias matches any of the filter patterns
     const matchesAnyFilter = filters.some(pattern => {
       try {
-        return minimatch(alias, pattern);
+        const matches = minimatch(alias, pattern);
+        return matches;
       } catch (error) {
         // If pattern is invalid, ignore it
-        console.warn(`Invalid glob pattern: ${pattern}`, error);
         return false;
       }
     });
@@ -129,6 +152,8 @@ function filterAliases(aliases: string[]): string[] {
       return !matchesAnyFilter;
     }
   });
+
+  return filtered;
 }
 
 /**
@@ -141,6 +166,24 @@ function getCurrentDefaultOrg(): string | null {
     const configFilePath = path.join(homeDir, '.sfdx', 'sfdx-config.json');
 
     if (!fs.existsSync(configFilePath)) {
+      // Try alternative locations
+      const altLocations = [
+        path.join(homeDir, 'sfdx', 'sfdx-config.json'),
+        path.join(process.env.USERPROFILE || homeDir, '.sfdx', 'sfdx-config.json'),
+        path.join(process.env.HOME || homeDir, '.sfdx', 'sfdx-config.json')
+      ];
+
+      for (const altPath of altLocations) {
+        if (fs.existsSync(altPath)) {
+          const altConfigContent = fs.readFileSync(altPath, 'utf8');
+          const altConfig = JSON.parse(altConfigContent);
+          const altDefault = altConfig.defaultusername || altConfig.defaultdevhubusername || null;
+          if (altDefault) {
+            return altDefault;
+          }
+        }
+      }
+
       return null;
     }
 
@@ -148,21 +191,49 @@ function getCurrentDefaultOrg(): string | null {
     const config = JSON.parse(configContent);
 
     // Check for default username (could be username or alias)
-    return config.defaultusername || config.defaultdevhubusername || null;
+    const defaultOrg = config.defaultusername || config.defaultdevhubusername || null;
+    return defaultOrg;
   } catch (error) {
-    console.error('Error reading sfdx config:', error);
+    log(`Error reading sfdx config: ${error}`);
     return null;
   }
 }
 
 /**
- * Updates the status bar based on current default org
+ * Checks if the current workspace is a Salesforce project
+ * @returns True if sfdx-project.json exists in the workspace root
+ */
+function isSalesforceProject(): boolean {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    return false;
+  }
+
+  const workspaceRoot = workspaceFolders[0].uri.fsPath;
+  const sfdxProjectFile = path.join(workspaceRoot, 'sfdx-project.json');
+
+  return fs.existsSync(sfdxProjectFile);
+}
+
+/**
+ * Updates the status bar based on current default org and project type
  * @param statusBarItem The status bar item to update
  * @param openOrgItem The open org status bar item to update
  */
 function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgItem?: vscode.StatusBarItem) {
+  const isSfProject = isSalesforceProject();
   const defaultOrg = getCurrentDefaultOrg();
 
+  if (!isSfProject) {
+    // Hide status bar if not a Salesforce project
+    statusBarItem.hide();
+    if (openOrgItem) {
+      openOrgItem.hide();
+    }
+    return;
+  }
+
+  // It's a Salesforce project, show status bar
   if (defaultOrg) {
     // Check if it's an alias or username
     const { aliasMap } = getSalesforceAliases();
@@ -184,6 +255,9 @@ function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgI
     }
   }
 
+  // Show status bar
+  statusBarItem.show();
+
   // Update tooltip
   const { aliases: currentAliases } = getSalesforceAliases();
   const filteredCurrentAliases = filterAliases(currentAliases);
@@ -200,7 +274,29 @@ function getSalesforceAliases(): { aliases: string[], aliasMap: Map<string, stri
     const aliasFilePath = path.join(homeDir, '.sfdx', 'alias.json');
 
     if (!fs.existsSync(aliasFilePath)) {
-      console.log('Salesforce alias file not found:', aliasFilePath);
+      // Try alternative locations
+      const altLocations = [
+        path.join(homeDir, 'sfdx', 'alias.json'),
+        path.join(process.env.USERPROFILE || homeDir, '.sfdx', 'alias.json'),
+        path.join(process.env.HOME || homeDir, '.sfdx', 'alias.json')
+      ];
+
+      for (const altPath of altLocations) {
+        if (fs.existsSync(altPath)) {
+          const altAliasContent = fs.readFileSync(altPath, 'utf8');
+          const altAliasData = JSON.parse(altAliasContent);
+
+          if (altAliasData.orgs && typeof altAliasData.orgs === 'object') {
+            const altAliasMap = new Map<string, string>();
+            Object.entries(altAliasData.orgs).forEach(([alias, username]) => {
+              altAliasMap.set(alias, username as string);
+            });
+            const altAliases = Array.from(altAliasMap.keys()).sort();
+            return { aliases: altAliases, aliasMap: altAliasMap };
+          }
+        }
+      }
+
       return { aliases: [], aliasMap: new Map() };
     }
 
@@ -208,7 +304,6 @@ function getSalesforceAliases(): { aliases: string[], aliasMap: Map<string, stri
     const aliasData = JSON.parse(aliasContent);
 
     if (!aliasData.orgs || typeof aliasData.orgs !== 'object') {
-      console.log('Invalid alias file format');
       return { aliases: [], aliasMap: new Map() };
     }
 
@@ -221,13 +316,23 @@ function getSalesforceAliases(): { aliases: string[], aliasMap: Map<string, stri
     const aliases = Array.from(aliasMap.keys()).sort();
     return { aliases, aliasMap };
   } catch (error) {
-    console.error('Error reading Salesforce aliases:', error);
+    log(`Error reading Salesforce aliases: ${error}`);
     return { aliases: [], aliasMap: new Map() };
   }
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Salesforce Org Quick Pick extension is now active!');
+  log('Extension activated');
+
+  // Create output channel for debugging
+  const outputChannel = vscode.window.createOutputChannel('SF Org Quick Pick');
+  outputChannel.appendLine('[SF Org Quick Pick] Extension activated');
+
+  // Make output channel available globally for logging
+  (global as any).sfOrgOutputChannel = outputChannel;
+
+  // Show output channel if there are issues
+  outputChannel.show();
 
   // Get Salesforce aliases and username mapping
   const { aliases: allAliases, aliasMap } = getSalesforceAliases();
@@ -246,7 +351,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Initial update from config
   updateStatusBarFromConfig(statusBarItem, openOrgItem);
-  statusBarItem.show();
 
   // Setup file watcher for sfdx-config.json to detect external changes
   const homeDir = os.homedir();
@@ -255,7 +359,6 @@ export function activate(context: vscode.ExtensionContext) {
   // Watch for changes to the config file
   const configWatcher = fs.watchFile(configFilePath, { persistent: true, interval: 1000 }, (curr, prev) => {
     if (curr.mtime !== prev.mtime) {
-      console.log('sfdx-config.json changed, updating status bar');
       updateStatusBarFromConfig(statusBarItem, openOrgItem);
     }
   });
@@ -264,7 +367,6 @@ export function activate(context: vscode.ExtensionContext) {
   const aliasFilePath = path.join(homeDir, '.sfdx', 'alias.json');
   const aliasWatcher = fs.watchFile(aliasFilePath, { persistent: true, interval: 1000 }, (curr, prev) => {
     if (curr.mtime !== prev.mtime) {
-      console.log('alias.json changed, updating status bar');
       updateStatusBarFromConfig(statusBarItem, openOrgItem);
     }
   });
@@ -288,12 +390,19 @@ export function activate(context: vscode.ExtensionContext) {
     const { aliases: currentAliases, aliasMap } = getSalesforceAliases();
     const filteredCurrentAliases = filterAliases(currentAliases);
 
-    // Create QuickPick items with alias - username format
-    const quickPickItems = filteredCurrentAliases.map(alias => ({
-      label: alias,
-      description: aliasMap.get(alias) || alias,
-      detail: `${alias} - ${aliasMap.get(alias) || alias}`
-    }));
+    // Create QuickPick items with alias as label and username as subtitle
+    const quickPickItems = filteredCurrentAliases.map(alias => {
+      const username = aliasMap.get(alias) || alias;
+      return {
+        label: alias,
+        description: username
+      };
+    });
+
+    if (quickPickItems.length === 0) {
+      vscode.window.showWarningMessage('No Salesforce orgs found. Make sure you have authorized orgs using the Salesforce CLI.');
+      return;
+    }
 
     const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
       title: 'Salesforce Org Quick Pick',
@@ -303,7 +412,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     if (selectedItem) {
-      switchToOrg(selectedItem.label, statusBarItem);
+      switchToOrg(selectedItem.label, statusBarItem, openOrgItem);
     }
   });
 
@@ -317,14 +426,33 @@ export function activate(context: vscode.ExtensionContext) {
     const currentOrg = getCurrentDefaultOrg();
     if (currentOrg) {
       try {
-        // Execute sf org open command
-        const terminal = vscode.window.createTerminal('Salesforce Org');
-        terminal.sendText(`sf org open --target-org ${currentOrg}`);
-        terminal.show();
+        // Get browser preference from settings
+        const config = vscode.workspace.getConfiguration('salesforceOrgQuickPick');
+        const browser = config.get('browser', 'default');
 
-        vscode.window.showInformationMessage(`Opening Salesforce org: ${currentOrg}`);
+        // Build the command with browser option if not default
+        let command = `sf org open --target-org ${currentOrg}`;
+        if (browser !== 'default') {
+          command += ` --browser ${browser}`;
+        }
+
+        // Execute command silently in background
+        exec(command, (error: any, stdout: any, stderr: any) => {
+          if (error) {
+            log(`Error opening org: ${error}`);
+            vscode.window.showErrorMessage(`Failed to open Salesforce org: ${error.message}`);
+            return;
+          }
+          if (stderr) {
+            log(`sf org open stderr: ${stderr}`);
+          }
+          log(`sf org open stdout: ${stdout}`);
+        });
+
+        // Show brief success message
+        vscode.window.showInformationMessage(`Opening Salesforce org in ${browser === 'default' ? 'default browser' : browser}...`);
       } catch (error) {
-        console.error('Error opening org:', error);
+        log(`Error opening org: ${error}`);
         vscode.window.showErrorMessage('Failed to open Salesforce org. Make sure Salesforce CLI is installed.');
       }
     } else {
@@ -346,12 +474,18 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  // Listen for workspace folder changes
+  const workspaceChangeDisposable = vscode.workspace.onDidChangeWorkspaceFolders(() => {
+    updateStatusBarFromConfig(statusBarItem, openOrgItem);
+  });
+
   context.subscriptions.push(statusBarItem);
   context.subscriptions.push(openOrgItem);
   context.subscriptions.push(disposable);
   context.subscriptions.push(switchToOrgDisposable);
   context.subscriptions.push(openCurrentOrgDisposable);
   context.subscriptions.push(configChangeDisposable);
+  context.subscriptions.push(workspaceChangeDisposable);
   context.subscriptions.push(configFileWatcherDisposable);
   context.subscriptions.push(aliasFileWatcherDisposable);
 }
