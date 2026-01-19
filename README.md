@@ -84,13 +84,16 @@ This will show only orgs whose aliases start with "DEV" or contain "TEST".
 │ 🔌 [PROD_ORG]                   │
 │ 🔌 [TEST_ORG]                   │
 ├─────────────────────────────────┤
-│ 📋 Pick in command center       │ ← Full selector
+│ 📊 Pick in command center       │ ← Full selector
 └─────────────────────────────────┘
 ```
 
 ### Command Center Layout
 When you click "Pick in command center", you'll see:
 ```
+Salesforce Org Quick Pick ← Extension title
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Search: [_________________________] ← Built-in search
 
 DEV_ORG          user@domain.com
@@ -103,6 +106,7 @@ TEST_ORG         qa@test.com
                  TEST_ORG - qa@test.com
 ```
 
+- **Title**: "Salesforce Org Quick Pick" at the top
 - **Left**: Alias name
 - **Right**: Username
 - **Bottom**: Full "Alias - Username" format

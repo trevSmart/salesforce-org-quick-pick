@@ -21,13 +21,13 @@ function buildInteractiveTooltip(aliases: string[]): vscode.MarkdownString {
 
   if (aliases.length > 0) {
     aliases.forEach(alias => {
-      // Create clickable link for each alias that calls the switch command
+      // Create clickable button for each alias that calls the switch command
       const switchLink = `command:salesforce-org-quick-pick.switchToOrg?${enc([alias])}`;
-      md.appendMarkdown(`$(plug) [${alias}](${switchLink} "Switch to ${alias}")\n\n`);
+      md.appendMarkdown(`<div style="margin: 4px 0;">$(plug) <a href="${switchLink}" style="color: #d4af37; text-decoration: none; cursor: pointer;">${alias}</a></div>\n`);
     });
 
     md.appendMarkdown('---\n');
-    md.appendMarkdown('[$(list-unordered) Pick in command center](command:salesforce-org-quick-pick.switchOrg "Open org selector with built-in filter")');
+    md.appendMarkdown(`<div style="margin-top: 8px;">$(layout-menubar) <a href="command:salesforce-org-quick-pick.switchOrg" style="color: #d4af37; text-decoration: none; cursor: pointer;">Pick in command center</a></div>\n`);
   } else {
     md.appendMarkdown('**No Salesforce Orgs Found**\n\n');
     md.appendMarkdown('Please authorize orgs using Salesforce CLI first.');
@@ -296,6 +296,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
+      title: 'Salesforce Org Quick Pick',
       placeHolder: 'Select a Salesforce org to switch to',
       matchOnDescription: true,
       matchOnDetail: true
