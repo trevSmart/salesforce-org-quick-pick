@@ -2,7 +2,7 @@
   "name": "salesforce-org-quick-pick",
   "displayName": "Salesforce Org Quick Pick",
   "description": "Quickly switch between Salesforce orgs from the status bar without breaking your flow.",
-  "version": "0.0.16",
+  "version": "0.0.18",
   "license": "MIT",
   "author": "trevSmart",
   "publisher": "trevSmart",
@@ -100,7 +100,7 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
     "bump-version": "node -e \"const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); const [major, minor, patch] = pkg.version.split('.').map(Number); pkg.version = major + '.' + minor + '.' + (patch + 1); fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2)); console.log('Version bumped to', pkg.version);\"",
-    "package": "mkdir -p dist && npx vsce package --out dist",
+    "package": "npm run bump-version && mkdir -p dist && npx vsce package --out dist",
     "clean": "rm -rf dist",
     "install-extension": "npm run bump-version && npm run compile && npm run clean && npm run package && cursor --install-extension dist/salesforce-org-quick-pick-*.vsix --force"
   },
