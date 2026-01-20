@@ -3,17 +3,34 @@
   "displayName": "Salesforce Org Quick Pick",
   "description": "Quickly switch between Salesforce orgs from the status bar without breaking your flow.",
   "version": "0.0.14",
+  "license": "MIT",
   "author": "trevSmart",
+  "publisher": "trevSmart",
   "repository": {
     "type": "git",
     "url": "https://github.com/trevSmart/salesforce-org-quick-pick"
   },
   "icon": "resources/logo.png",
   "engines": {
-    "vscode": "^1.74.0"
+    "vscode": "^1.64.0"
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "Salesforce",
+    "Apex",
+    "Lightning",
+    "Developer",
+    "Performance",
+    "Org",
+    "Sandbox",
+    "Browser",
+    "SFDX",
+    "Pick",
+    "Picker",
+    "Switch",
+    "Switcher"
   ],
   "activationEvents": [
     "onStartupFinished"
