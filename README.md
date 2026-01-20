@@ -2,6 +2,8 @@
 
 Quickly switch between Salesforce orgs from the status bar without breaking your flow.
 
+[![CodeQL Advanced](https://github.com/trevSmart/salesforce-org-quick-pick/actions/workflows/codeql.yml/badge.svg)](https://github.com/trevSmart/salesforce-org-quick-pick/actions/workflows/codeql.yml)
+
 ## Features
 
 - Status bar integration for quick org switching

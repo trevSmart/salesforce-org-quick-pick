@@ -18,19 +18,18 @@
     "Other"
   ],
   "keywords": [
-    "Salesforce",
-    "Apex",
-    "Lightning",
-    "Developer",
-    "Performance",
-    "Org",
-    "Sandbox",
-    "Browser",
-    "SFDX",
-    "Pick",
-    "Picker",
-    "Switch",
-    "Switcher"
+    "salesforce",
+    "apex",
+    "lightning",
+    "developer",
+    "productivity",
+    "org",
+    "sandbox",
+    "scratch-org",
+    "browser",
+    "sfdx",
+    "picker",
+    "switcher"
   ],
   "activationEvents": [
     "onStartupFinished"
