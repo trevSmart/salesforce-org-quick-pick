@@ -90,7 +90,7 @@
     }
   },
   "dependencies": {
-    "minimatch": "^9.0.4"
+    "minimatch": "^10.1.1"
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
