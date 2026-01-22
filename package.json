@@ -2,7 +2,7 @@
   "name": "salesforce-org-quick-pick",
   "displayName": "Salesforce Org Quick Pick",
   "description": "Quickly switch between Salesforce orgs from the status bar without breaking your flow.",
-  "version": "0.0.25",
+  "version": "0.0.54",
   "license": "MIT",
   "author": "trevSmart",
   "publisher": "trevSmart",
@@ -48,23 +48,28 @@
         "salesforceOrgQuickPick.orgFilters": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "filterPattern": {
+                "type": "string",
+                "description": "Glob pattern to filter which Salesforce org aliases to show. Examples: 'DEV*', 'PROD', '*TEST*'"
+              },
+              "quickAccessOrder": {
+                "type": "number",
+                "description": "Order for quick access buttons in status bar (lower numbers appear first)",
+                "default": 0
+              },
+              "quickAccessLabel": {
+                "type": "string",
+                "description": "Custom label to show on quick access button. If empty, uses the org alias"
+              }
+            },
+            "required": [
+              "filterPattern"
+            ]
           },
           "default": [],
-          "description": "Array of glob patterns to filter which Salesforce org aliases to show. If empty, all orgs are shown. Examples: 'DEV*', 'PROD', '*TEST*'"
-        },
-        "salesforceOrgQuickPick.filterMode": {
-          "type": "string",
-          "enum": [
-            "include",
-            "exclude"
-          ],
-          "enumDescriptions": [
-            "Only show orgs that match the filter patterns",
-            "Show all orgs except those that match the filter patterns"
-          ],
-          "default": "include",
-          "description": "Whether to include or exclude orgs matching the filter patterns"
+          "description": "Array of filter configurations for Salesforce org aliases. Each filter can specify a pattern, order for quick access, and custom label"
         },
         "salesforceOrgQuickPick.browser": {
           "type": "string",
@@ -84,6 +89,11 @@
           ],
           "default": "default",
           "description": "Browser to use when opening Salesforce orgs"
+        },
+        "salesforceOrgQuickPick.showTooltip": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show interactive tooltip with clickable org aliases on status bar hover"
         }
       }
     }

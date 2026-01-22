@@ -28,10 +28,6 @@ You can configure which orgs to show in the tooltip by setting filters in your V
   - If empty, all orgs are shown
   - Examples: `"DEV*"`, `"PROD"`, `"*TEST*"`
 
-- **`salesforceOrgQuickPick.filterMode`**: Filter mode
-  - `"include"`: Only show orgs matching the patterns (default)
-  - `"exclude"`: Show all orgs except those matching the patterns
-
 - **`salesforceOrgQuickPick.browser`**: Browser selection
   - `"default"`: Use system default browser (default)
   - `"chrome"`: Google Chrome
@@ -46,8 +42,7 @@ You can configure which orgs to show in the tooltip by setting filters in your V
   "salesforceOrgQuickPick.orgFilters": [
     "DEV*",
     "*TEST*"
-  ],
-  "salesforceOrgQuickPick.filterMode": "include"
+  ]
 }
 ```
 
