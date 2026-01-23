@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
+import { exec } from 'child_process';
 import { minimatch } from 'minimatch';
-const { exec } = require('child_process');
 
 // Logging utility function
 function log(message: string) {
@@ -21,7 +21,7 @@ class DedicatedStatusBarManager {
   private context: vscode.ExtensionContext;
   private dedicatedItems: Map<string, vscode.StatusBarItem> = new Map();
   private itemOrders: Map<string, number> = new Map(); // Store order for each item
-  private nextPriority = 99; // Start before main items (100)
+  private nextPriority = 55; // Start after Salesforce official extension (priority 48)
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -79,7 +79,7 @@ class DedicatedStatusBarManager {
 
     // Calculate priority based on order (higher order = higher priority)
     // If not found in filters (-1), use a low priority (high number)
-    const priority = order === -1 ? 99 : 99 - order;
+    const priority = order === -1 ? 55 : 55 + order;
 
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, priority);
     item.text = getAliasDisplayLabel(alias);
@@ -150,7 +150,7 @@ class DedicatedStatusBarManager {
 
     this.dedicatedItems.forEach((item, alias) => {
       const order = filters.findIndex(f => minimatch(alias, f));
-      const newPriority = order === -1 ? 99 : 99 - order;
+      const newPriority = order === -1 ? 55 : 55 + order;
 
       // Recreate the item with new priority
       item.hide();
@@ -456,10 +456,15 @@ function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgI
     const hideLabel = config.get('hideMainLabelWhenDedicatedExists', true) && dedicatedManager && dedicatedManager.hasDedicatedItem(alias);
     statusBarItem.text = hideLabel ? '$(cloud)' : `$(cloud) ${alias}`;
 
-    // Show open org button
+    // Show open org button if setting is enabled
     if (openOrgItem) {
-      openOrgItem.text = '$(window)';
-      openOrgItem.show();
+      const showOpenOrgButton = config.get('showOpenOrgButton', true);
+      if (showOpenOrgButton) {
+        openOrgItem.text = '$(window)';
+        openOrgItem.show();
+      } else {
+        openOrgItem.hide();
+      }
     }
 
     // Update dedicated items icons
@@ -577,12 +582,12 @@ function initializeExtension(context: vscode.ExtensionContext) {
   dedicatedManager.loadPersistedOrgs(aliasMap);
 
   // Create status bar item for opening current org
-  const openOrgItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 102);
+  const openOrgItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 52);
   openOrgItem.command = 'salesforce-org-quick-pick.openCurrentOrg';
   openOrgItem.tooltip = 'Open default org in browser';
 
   // Create status bar item for org switching
-  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   statusBarItem.command = 'salesforce-org-quick-pick.switchOrg';
 
   // Initial update from config
@@ -813,6 +818,7 @@ function initializeExtension(context: vscode.ExtensionContext) {
   const configChangeDisposable = vscode.workspace.onDidChangeConfiguration(event => {
     if (event.affectsConfiguration('salesforceOrgQuickPick')) {
       updateTooltip();
+      updateStatusBarFromConfig(statusBarItem, openOrgItem, dedicatedManager);
 
       // Reorder dedicated items if orgFilters changed
       if (event.affectsConfiguration('salesforceOrgQuickPick.orgFilters')) {

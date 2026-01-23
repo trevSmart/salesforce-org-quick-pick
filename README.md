@@ -2,25 +2,21 @@
 
 Quickly switch between Salesforce orgs from the status bar without breaking your flow.
 
-[![CodeQL Advanced](https://github.com/trevSmart/salesforce-org-quick-pick/actions/workflows/codeql.yml/badge.svg)](https://github.com/trevSmart/salesforce-org-quick-pick/actions/workflows/codeql.yml)
-
 ## Features
 
-- Status bar integration for quick org switching
-- Interactive tooltip with clickable org aliases
-- Configurable org filtering with glob patterns
-- Automatic sync with Salesforce CLI default org
-- Real-time file watching for configuration changes
-- Cross-platform support (macOS, Windows, Linux)
-- Centered title in tooltip
-- "Pick in command center" option for full selector
-- Quick org opening with browser integration
-- Seamless workflow continuation
-- Easy org management
+- **Status bar integration** for quick org switching
+- **Interactive tooltip** with clickable org aliases on hover
+- **Configurable filtering** with glob patterns and include/exclude modes
+- **Automatic sync** with Salesforce CLI default org
+- **Custom labels** for org aliases in status bar
+- **Browser integration** with multiple browser support
+- **Dedicated quick access items** for frequently used orgs
+- **Command center picker** with search functionality
+- **Cross-platform support** (macOS, Windows, Linux)
 
 ## Configuration
 
-You can configure which orgs to show in the tooltip by setting filters in your VS Code settings:
+Configure the extension through VS Code settings (`Ctrl/Cmd + ,` and search for "Salesforce Org Quick Pick").
 
 ### Settings
 
@@ -28,12 +24,32 @@ You can configure which orgs to show in the tooltip by setting filters in your V
   - If empty, all orgs are shown
   - Examples: `"DEV*"`, `"PROD"`, `"*TEST*"`
 
-- **`salesforceOrgQuickPick.browser`**: Browser selection
-  - `"default"`: Use system default browser (default)
+- **`salesforceOrgQuickPick.filterMode`**: Filter behavior
+  - `"include"` (default): Only show orgs that match the filter patterns
+  - `"exclude"`: Show all orgs except those that match the filter patterns
+
+- **`salesforceOrgQuickPick.browser`**: Browser to use when opening orgs
+  - `"default"`: Use system default browser
   - `"chrome"`: Google Chrome
   - `"firefox"`: Mozilla Firefox
   - `"safari"`: Safari
   - `"edge"`: Microsoft Edge
+
+- **`salesforceOrgQuickPick.showTooltip`**: Show interactive tooltip on status bar hover
+  - `false` (default): Tooltip disabled
+  - `true`: Enable clickable tooltip with org aliases
+
+- **`salesforceOrgQuickPick.aliasLabels`**: Custom labels for org aliases
+  - Map long alias names to short display labels
+  - Example: `{"my-very-long-alias-name": "DEV"}`
+
+- **`salesforceOrgQuickPick.hideMainLabelWhenDedicatedExists`**: Hide main picker when dedicated items exist
+  - `true` (default): Hide main picker when dedicated items are available
+  - `false`: Always show main picker
+
+- **`salesforceOrgQuickPick.showOpenOrgButton`**: Show browser open button in status bar
+  - `true` (default): Show button to open org in browser
+  - `false`: Hide browser open button
 
 ### Example Configuration
 
@@ -42,17 +58,17 @@ You can configure which orgs to show in the tooltip by setting filters in your V
   "salesforceOrgQuickPick.orgFilters": [
     "DEV*",
     "*TEST*"
-  ]
+  ],
+  "salesforceOrgQuickPick.filterMode": "include",
+  "salesforceOrgQuickPick.browser": "chrome",
+  "salesforceOrgQuickPick.showTooltip": true,
+  "salesforceOrgQuickPick.aliasLabels": {
+    "my-production-org-alias": "PROD"
+  }
 }
 ```
 
-This will show only orgs whose aliases start with "DEV" or contain "TEST".
-
-### Accessing Settings
-
-1. Open VS Code settings (`Ctrl/Cmd + ,`)
-2. Search for "Salesforce Org Quick Pick"
-3. Configure the filters and browser preferences as needed
+This configuration shows only orgs starting with "DEV" or containing "TEST", uses Chrome for opening orgs, enables tooltips, and displays "PROD" instead of the full production alias.
 
 ## How to Use
 
@@ -121,58 +137,10 @@ TEST_ORG         qa@test.com
 
 The extension automatically syncs with your Salesforce CLI configuration:
 
-### Default Org Detection
-- Reads the current default org from `~/.sfdx/sfdx-config.json`
-- Displays the org with a plug icon (🔌) when connected
-- Shows "Pick org" when no default org is set
-
-### Real-time Updates
-- Monitors changes to `sfdx-config.json` and `alias.json`
-- Automatically updates the status bar when you change orgs using Salesforce CLI commands
-- No need to restart VS Code or the extension
-
-### Configuration Persistence
-- When you select an org in the extension, it updates `sfdx-config.json`
-- Your selection becomes the new default org for Salesforce CLI
-- Changes are immediately reflected across all terminals and tools
-
-## Development
-
-### Prerequisites
-
-- Node.js 16+
-- VS Code
-
-### Setup
-
-1. Clone the repository:
-```bash
-git clone https://github.com/trevSmart/salesforce-org-quick-pick.git
-cd salesforce-org-quick-pick
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Open in VS Code and press F5 to launch extension development host.
-
-### Building
-
-```bash
-npm run compile
-```
-
-### Testing
-
-```bash
-npm test
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- **Automatic detection**: Shows your current default org with a plug icon (🔌)
+- **Real-time updates**: Status bar updates automatically when you change orgs via CLI
+- **Persistent changes**: Selecting an org in the extension updates your CLI default
+- **No restarts needed**: Changes are reflected immediately across all tools
 
 ## License
 

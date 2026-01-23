@@ -105,6 +105,11 @@
           "type": "boolean",
           "default": true,
           "description": "Hide the main status bar picker label when a dedicated quick access item exists for the current org, showing only the icon"
+        },
+        "salesforceOrgQuickPick.showOpenOrgButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the open org button in the status bar to navigate to the default org in the browser"
         }
       }
     }
