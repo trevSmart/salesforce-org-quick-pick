@@ -21,7 +21,7 @@ class DedicatedStatusBarManager {
   private context: vscode.ExtensionContext;
   private dedicatedItems: Map<string, vscode.StatusBarItem> = new Map();
   private itemOrders: Map<string, number> = new Map(); // Store order for each item
-  private nextPriority = 51; // Start after main picker for consecutive block
+  private nextPriority = 50; // Start before main picker (dedicated items first)
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -79,7 +79,7 @@ class DedicatedStatusBarManager {
 
     // Calculate priority based on order (higher order = higher priority)
     // If not found in filters (-1), use a low priority (high number)
-    const priority = order === -1 ? 51 : 51 + order;
+    const priority = order === -1 ? 50 : 50 + order;
 
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, priority);
     item.text = getAliasDisplayLabel(alias);
@@ -150,7 +150,7 @@ class DedicatedStatusBarManager {
 
     this.dedicatedItems.forEach((item, alias) => {
       const order = filters.findIndex(f => minimatch(alias, f));
-      const newPriority = order === -1 ? 51 : 51 + order;
+      const newPriority = order === -1 ? 50 : 50 + order;
 
       // Recreate the item with new priority
       item.hide();
@@ -586,8 +586,8 @@ function initializeExtension(context: vscode.ExtensionContext) {
   openOrgItem.command = 'salesforce-org-quick-pick.openCurrentOrg';
   openOrgItem.tooltip = 'Open default org in browser';
 
-  // Create status bar item for org switching
-  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
+  // Create status bar item for org switching (after dedicated items)
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 54);
   statusBarItem.command = 'salesforce-org-quick-pick.switchOrg';
 
   // Initial update from config
