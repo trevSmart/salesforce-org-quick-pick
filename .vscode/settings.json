@@ -10,5 +10,13 @@
 		"defaultColor": "white",
 		"reloadButton": "↻",
 		"loadNpmCommands": false
-	}
+	},
+	"squarl.bookmarks": [
+		{
+			"name": "Open VSX Registry",
+			"path": "https://open-vsx.org/",
+			"description": "",
+			"type": "link"
+		}
+	]
 }
