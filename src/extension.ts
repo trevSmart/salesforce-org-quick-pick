@@ -36,8 +36,10 @@ class DedicatedStatusBarManager {
 
       if (username === currentDefaultOrg) {
         item.text = `$(plug) ${getAliasDisplayLabel(alias)}`;
+        item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
       } else {
         item.text = getAliasDisplayLabel(alias);
+        item.backgroundColor = undefined;
       }
     });
   }
@@ -280,9 +282,8 @@ function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem, openOrg
   const username = aliasMap.get(alias);
 
   if (username) {
-    // Show warning state while authenticating
+    // Show authenticating state
     statusBarItem.text = `$(warning) Authenticating...`;
-    statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
     if (openOrgItem) {
       openOrgItem.hide();
     }

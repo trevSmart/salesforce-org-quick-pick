@@ -2,7 +2,7 @@
   "name": "salesforce-org-quick-pick",
   "displayName": "Salesforce Org Quick Pick",
   "description": "Quickly switch between Salesforce orgs from the status bar without breaking your flow.",
-  "version": "0.0.63",
+  "version": "0.0.69",
   "license": "MIT",
   "author": "trevSmart",
   "publisher": "trevSmart",
