@@ -12,7 +12,9 @@ A replacement for the Salesforce Org Management status bar org picker.
 
 - **Dedicated status bar buttons for your most used orgs**
 
-  Quickly switch to your most used orgs from dedicated status bar buttons without breaking your flow. You can set short names for these buttons to avoid cluttering your status bar.
+  Quickly switch to your most used orgs from dedicated status bar buttons without breaking your flow. To avoid cluttering your status bar:
+  - When a dedicated button fot the current org exists, the main picker label is hidden to save space.
+  - You can set short names for these buttons.
 
   ![Salesforce Org Quick Pick](resources/screenshot2.png)
 
