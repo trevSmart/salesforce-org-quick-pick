@@ -283,7 +283,7 @@ function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem, openOrg
 
   if (username) {
     // Show authenticating state
-    statusBarItem.text = `$(warning) Authenticating...`;
+    statusBarItem.text = statusBarItem.text.replace('$(cloud)', '$(loading~spin)');
     if (openOrgItem) {
       openOrgItem.hide();
     }
@@ -295,6 +295,7 @@ function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem, openOrg
     exec(`sf config set target-org "${alias}"`, (error: any, stdout: any, stderr: any) => {
       // Always reset the warning state when the command completes
       statusBarItem.backgroundColor = undefined;
+      statusBarItem.text = statusBarItem.text.replace('$(loading~spin)', '$(cloud)');
 
       if (error) {
         log(`Error setting default org with CLI: ${error}`);
@@ -583,7 +584,7 @@ function initializeExtension(context: vscode.ExtensionContext) {
   dedicatedManager.loadPersistedOrgs(aliasMap);
 
   // Create status bar item for opening current org (at the end of our block)
-  const openOrgItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  const openOrgItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 3000);
   openOrgItem.command = 'salesforce-org-quick-pick.openCurrentOrg';
   openOrgItem.tooltip = 'Open default org in browser';
 
