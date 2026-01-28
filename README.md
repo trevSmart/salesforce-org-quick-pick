@@ -27,21 +27,21 @@ A replacement for the Salesforce Org Management status bar org picker.
 
   The extension updates its UI when switching orgs via Salesforce Org Management picker.
 
-## Configuration
+## Get started
 
-Configure the extension through VS Code settings (`Ctrl/Cmd + ,` and search for "Salesforce Org Quick Pick").
+1. **Configure the extension through VS Code settings**
 
-### Settings
+2. **Replace the org picker**
+
+   Right click on the VS Code status bar, uncheck "Salesforce Org Management" and make sure "Salesforce Org Quick Pick" is checked.
+
+## Settings
 
 - **`salesforceOrgQuickPick.orgFilters`**: Array of glob patterns to filter org aliases (usually set at project level)
   - If empty, all orgs are shown
   - Examples: `"DEV*"`, `"PROD"`, `"*TEST*"`
 
 - **`salesforceOrgQuickPick.browser`**: Browser to use when opening orgs
-  - `"default"`: Use system default browser
-  - `"chrome"`: Google Chrome
-  - `"firefox"`: Mozilla Firefox
-  - `"safari"`: Safari
   - `"edge"`: Microsoft Edge
 
 - **`salesforceOrgQuickPick.aliasLabels`**: Custom labels for org aliases (usually set at project level)
