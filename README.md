@@ -2,6 +2,8 @@
 
 Quickly switch between Salesforce orgs from the status bar without breaking your flow.
 
+![Salesforce Org Quick Pick](resources/screenshot.png)
+
 ## Features
 
 - **Status bar integration** for quick org switching
