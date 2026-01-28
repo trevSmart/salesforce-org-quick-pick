@@ -110,6 +110,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show the open org button in the status bar to navigate to the default org in the browser"
+        },
+        "salesforceOrgQuickPick.highlightCurrentTargetOrgDedicatedButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight current target org's dedicated button"
         }
       }
     }

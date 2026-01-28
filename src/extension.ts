@@ -30,10 +30,14 @@ class DedicatedStatusBarManager {
    * Updates icons of dedicated items based on current default org
    */
   updateIcons(currentDefaultOrg: string | null, aliasMap: Map<string, string>) {
+    const config = vscode.workspace.getConfiguration('salesforceOrgQuickPick');
+    const highlightCurrent = config.get('highlightCurrentTargetOrgDedicatedButton', true);
+
     this.dedicatedItems.forEach((item, alias) => {
       const username = aliasMap.get(alias);
+      const isCurrentOrg = username === currentDefaultOrg;
 
-      if (username === currentDefaultOrg) {
+      if (isCurrentOrg && highlightCurrent) {
         item.text = `$(plug) ${getAliasDisplayLabel(alias)}`;
         item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
       } else {
@@ -65,6 +69,9 @@ class DedicatedStatusBarManager {
         this.addDedicatedItem(alias, aliasMap.get(alias)!);
       }
     });
+
+    // Update visibility based on filters after loading
+    this.updateVisibilityBasedOnFilters();
   }
 
   /**
@@ -90,10 +97,12 @@ class DedicatedStatusBarManager {
       arguments: [alias, username],
       title: `Switch to ${alias} org`
     };
-    item.show();
 
     this.dedicatedItems.set(alias, item);
     this.itemOrders.set(alias, order);
+
+    // Update visibility based on filters (will show/hide accordingly)
+    this.updateVisibilityForItem(alias);
 
     // Persist the change
     this.persistDedicatedOrgs();
@@ -121,10 +130,8 @@ class DedicatedStatusBarManager {
   toggleDedicatedItem(alias: string, username: string) {
     if (this.dedicatedItems.has(alias)) {
       this.removeDedicatedItem(alias);
-      vscode.window.showInformationMessage(`Removed quick access for "${alias}"`);
     } else {
       this.addDedicatedItem(alias, username);
-      vscode.window.showInformationMessage(`Added quick access for "${alias}"`);
     }
   }
 
@@ -133,6 +140,24 @@ class DedicatedStatusBarManager {
    */
   hasDedicatedItem(alias: string): boolean {
     return this.dedicatedItems.has(alias);
+  }
+
+  /**
+   * Checks if an org has a visible dedicated item (exists and passes filter)
+   */
+  hasVisibleDedicatedItem(alias: string): boolean {
+    if (!this.dedicatedItems.has(alias)) {
+      return false;
+    }
+
+    const filters = getNormalizedOrgFilters();
+    // If no filters, item is visible if it exists
+    if (filters.length === 0) {
+      return true;
+    }
+
+    // Check if alias passes any filter
+    return filters.some(filter => simpleGlobMatch(alias, filter));
   }
 
   /**
@@ -161,10 +186,40 @@ class DedicatedStatusBarManager {
       newItem.text = getAliasDisplayLabel(alias);
       newItem.tooltip = item.tooltip;
       newItem.command = item.command;
-      newItem.show();
 
       this.dedicatedItems.set(alias, newItem);
       this.itemOrders.set(alias, order);
+    });
+
+    // Update visibility based on filters after reordering
+    this.updateVisibilityBasedOnFilters();
+  }
+
+  /**
+   * Updates visibility for a single dedicated item based on filters
+   */
+  private updateVisibilityForItem(alias: string) {
+    const item = this.dedicatedItems.get(alias);
+    if (!item) {
+      return;
+    }
+
+    const filters = getNormalizedOrgFilters();
+    const shouldShow = filters.length === 0 || filters.some(filter => simpleGlobMatch(alias, filter));
+
+    if (shouldShow) {
+      item.show();
+    } else {
+      item.hide();
+    }
+  }
+
+  /**
+   * Updates visibility of all dedicated items based on current filters
+   */
+  updateVisibilityBasedOnFilters() {
+    this.dedicatedItems.forEach((_, alias) => {
+      this.updateVisibilityForItem(alias);
     });
   }
 
@@ -179,11 +234,10 @@ class DedicatedStatusBarManager {
 
   /**
    * Shows all dedicated items (when back in Salesforce project)
+   * Respects filter configuration
    */
   showAll() {
-    this.dedicatedItems.forEach(item => {
-      item.show();
-    });
+    this.updateVisibilityBasedOnFilters();
   }
 
   /**
@@ -312,8 +366,6 @@ function switchToOrg(alias: string, statusBarItem: vscode.StatusBarItem, openOrg
       updateStatusBarFromConfig(statusBarItem, openOrgItem, dedicatedManager);
     });
 
-    // Show confirmation message
-    vscode.window.showInformationMessage(`Switched to Salesforce org: ${alias}`);
 
     log(`Selected org: ${alias} (${username})`);
   } else {
@@ -452,10 +504,20 @@ function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgI
     const { aliasMap } = getSalesforceAliases();
     const alias = Array.from(aliasMap.entries()).find(([_, username]) => username === defaultOrg)?.[0] || defaultOrg;
 
-    // Check if we should hide the label when dedicated item exists
+    // Check if we should hide the label when dedicated item exists and is visible
     const config = vscode.workspace.getConfiguration('salesforceOrgQuickPick');
-    const hideLabel = config.get('hideMainLabelWhenDedicatedExists', true) && dedicatedManager && dedicatedManager.hasDedicatedItem(alias);
-    statusBarItem.text = hideLabel ? '$(cloud)' : `$(cloud) ${alias}`;
+    const hideLabel = config.get('hideMainLabelWhenDedicatedExists', true) && dedicatedManager && dedicatedManager.hasVisibleDedicatedItem(alias);
+    const displayLabel = getAliasDisplayLabel(alias);
+    statusBarItem.text = hideLabel ? '$(cloud)' : `$(cloud) ${displayLabel}`;
+
+    // Apply highlight color to main picker if setting is enabled and no visible dedicated button exists
+    const highlightCurrent = config.get('highlightCurrentTargetOrgDedicatedButton', true);
+    const hasVisibleDedicated = dedicatedManager && dedicatedManager.hasVisibleDedicatedItem(alias);
+    if (highlightCurrent && !hasVisibleDedicated) {
+      statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    } else {
+      statusBarItem.backgroundColor = undefined;
+    }
 
     // Show open org button if setting is enabled
     if (openOrgItem) {
@@ -468,11 +530,12 @@ function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgI
       }
     }
 
-    // Update dedicated items icons
+    // Update dedicated items icons and visibility
     if (dedicatedManager) {
       // Convert defaultOrg (which could be alias or username) to username for comparison
       const currentUsername = aliasMap.get(defaultOrg) || defaultOrg;
       dedicatedManager.updateIcons(currentUsername, aliasMap);
+      dedicatedManager.updateVisibilityBasedOnFilters();
     }
   } else {
     statusBarItem.text = '$(cloud) Pick org';
@@ -663,7 +726,18 @@ function initializeExtension(context: vscode.ExtensionContext) {
     });
 
     if (quickPickItems.length === 0) {
-      vscode.window.showWarningMessage('No Salesforce orgs found. Make sure you have authorized orgs using the Salesforce CLI.');
+      // Distinguish between no orgs retrieved vs. no orgs matching filter
+      const { aliases: allAliases } = getSalesforceAliases();
+      if (allAliases.length === 0) {
+        vscode.window.showWarningMessage('No Salesforce orgs found. Make sure you have authorized orgs using the Salesforce CLI.');
+      } else {
+        const filters = getNormalizedOrgFilters();
+        if (filters && filters.length > 0) {
+          vscode.window.showWarningMessage(`No Salesforce orgs match the configured filters: ${filters.join(', ')}`);
+        } else {
+          vscode.window.showWarningMessage('No Salesforce orgs found. Make sure you have authorized orgs using the Salesforce CLI.');
+        }
+      }
       return;
     }
 
@@ -825,6 +899,18 @@ function initializeExtension(context: vscode.ExtensionContext) {
       if (event.affectsConfiguration('salesforceOrgQuickPick.orgFilters')) {
         dedicatedManager.reorderItems();
       }
+
+      // Re-apply highlighting if highlight setting changed
+      if (event.affectsConfiguration('salesforceOrgQuickPick.highlightCurrentTargetOrgDedicatedButton')) {
+        const defaultOrg = getCurrentDefaultOrg();
+        if (defaultOrg && dedicatedManager) {
+          const { aliasMap } = getSalesforceAliases();
+          const currentUsername = aliasMap.get(defaultOrg) || defaultOrg;
+          dedicatedManager.updateIcons(currentUsername, aliasMap);
+        }
+        // Also update main picker highlighting
+        updateStatusBarFromConfig(statusBarItem, openOrgItem, dedicatedManager);
+      }
     }
   });
 
@@ -893,12 +979,12 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 function simpleGlobMatch(text: string, pattern: string): boolean {
-  // Escape de caràcters especials de RegExp
-  const escaped = pattern.replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&');
-  // Converteix * i ? a equivalents de RegExp
-  const regexPattern = '^' + escaped
-    .replace(/\\\*/g, '.*')   // *  → .*
-    .replace(/\\\?/g, '.')    // ?  → .
+  // First escape special characters (except * and ? which are wildcards)
+  // Then convert wildcards to RegExp equivalents
+  const regexPattern = '^' + pattern
+    .replace(/[-/\\^$+.()|[\]{}]/g, '\\$&')  // Escape special characters except * and ?
+    .replace(/\*/g, '.*')   // *  → .*
+    .replace(/\?/g, '.')    // ?  → .
   + '$';
 
   const regex = new RegExp(regexPattern);
