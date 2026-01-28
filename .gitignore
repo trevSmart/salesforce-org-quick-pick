@@ -4,3 +4,6 @@ dist/
 .vscode-test/
 *.log
 .env
+.sfdx
+.sf
+sfdx-project.json
