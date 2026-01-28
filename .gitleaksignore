@@ -1,0 +1,9 @@
+# Gitleaks ignore file
+# Format: path:lineNumber or path:startLine-endLine
+# 
+# Example:
+# src/example.ts:42
+# README.md:15-20
+#
+# This file is intentionally left empty.
+# Add entries here if Gitleaks reports false positives.

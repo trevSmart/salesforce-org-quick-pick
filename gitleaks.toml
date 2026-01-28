@@ -1,0 +1,58 @@
+# Gitleaks configuration for detecting secrets in the repository
+# https://github.com/gitleaks/gitleaks
+
+title = "Gitleaks Configuration for Salesforce Org Quick Pick"
+
+[extend]
+# Use default rules from Gitleaks
+useDefault = true
+
+# Custom rules specific to this project
+[[rules]]
+id = "vsce-token"
+description = "Visual Studio Code Extension Token"
+regex = '''VSCE_TOKEN\s*=\s*['"]?[a-zA-Z0-9]{52}['"]?'''
+tags = ["vsce", "token", "secret"]
+
+[[rules]]
+id = "open-vsx-token"
+description = "Open VSX Registry Token"
+regex = '''OPEN_VSX_TOKEN\s*=\s*['"]?[a-zA-Z0-9-_]{20,}['"]?'''
+tags = ["openvsx", "token", "secret"]
+
+[[rules]]
+id = "salesforce-access-token"
+description = "Salesforce Access Token"
+regex = '''00D[a-zA-Z0-9]{15}![a-zA-Z0-9\.]{100,}'''
+tags = ["salesforce", "access-token", "secret"]
+
+[[rules]]
+id = "generic-secret-in-env"
+description = "Generic secrets in .env files"
+regex = '''(?i)(password|secret|api_?key|access_?token|auth_?token)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9\-_]{8,}['"]?'''
+path = '''\.env$'''
+tags = ["env", "secret"]
+
+# Allowlist for false positives
+[allowlist]
+description = "Allowlisted files"
+paths = [
+    '''.env.example''',  # Example files are safe
+    '''SECURITY_REMEDIATION.md''',  # Documentation about secrets
+    '''gitleaks.toml''',  # This config file
+    '''remove-secrets.sh''',  # Script for removing secrets
+]
+
+# Allowlist for specific patterns that are known to be safe
+regexes = [
+    '''your_.*_here''',  # Placeholder values in .env.example
+    '''EXAMPLE_TOKEN''',
+]
+
+# Stop words that indicate example/placeholder content
+stopwords = [
+    "example",
+    "placeholder",
+    "your_token_here",
+    "changeme",
+]
