@@ -32,7 +32,7 @@
     "switcher"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "workspaceContains:sfdx-project.json"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -93,7 +93,7 @@
         "salesforceOrgQuickPick.aliasLabels": {
           "type": "object",
           "default": {},
-          "description": "Map of org aliases to short labels for status bar display. If not specified, the full alias will be used. Example: {\"my-very-long-alias-name\": \"DEV\"}",
+          "description": "Map of org aliases to short labels for status bar elements. If not specified, the full alias will be used. Example: {\"my-very-long-alias-name\": \"DEV\"}",
           "patternProperties": {
             ".*": {
               "type": "string"
@@ -111,10 +111,20 @@
           "default": true,
           "description": "Show the open org button in the status bar to navigate to the default org in the browser"
         },
-        "salesforceOrgQuickPick.highlightCurrentTargetOrgDedicatedButton": {
-          "type": "boolean",
-          "default": true,
-          "description": "Highlight current target org's dedicated button"
+        "salesforceOrgQuickPick.highlightCurrentTargetOrgMode": {
+          "type": "string",
+          "enum": [
+            "never",
+            "whenDedicatedVisible",
+            "always"
+          ],
+          "enumDescriptions": [
+            "Never highlight",
+            "Highlight only when using dedicated buttons",
+            "Always highlight"
+          ],
+          "default": "always",
+          "description": "When to highlight the current target org in the status bar"
         }
       }
     }

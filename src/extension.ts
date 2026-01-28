@@ -20,7 +20,7 @@ class DedicatedStatusBarManager {
   private context: vscode.ExtensionContext;
   private dedicatedItems: Map<string, vscode.StatusBarItem> = new Map();
   private itemOrders: Map<string, number> = new Map(); // Store order for each item
-  private nextPriority = 50; // Start before main picker (dedicated items first)
+  private nextPriority = 40; // Start before main picker (dedicated items first)
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -30,14 +30,16 @@ class DedicatedStatusBarManager {
    * Updates icons of dedicated items based on current default org
    */
   updateIcons(currentDefaultOrg: string | null, aliasMap: Map<string, string>) {
-    const config = vscode.workspace.getConfiguration('salesforceOrgQuickPick');
-    const highlightCurrent = config.get('highlightCurrentTargetOrgDedicatedButton', true);
+    const mode = getHighlightMode();
+    const hasAnyVisible = this.hasAnyVisibleDedicatedItem();
+    const shouldHighlightDedicated =
+      mode === 'always' || (mode === 'whenDedicatedVisible' && hasAnyVisible);
 
     this.dedicatedItems.forEach((item, alias) => {
       const username = aliasMap.get(alias);
       const isCurrentOrg = username === currentDefaultOrg;
 
-      if (isCurrentOrg && highlightCurrent) {
+      if (isCurrentOrg && shouldHighlightDedicated) {
         item.text = `$(plug) ${getAliasDisplayLabel(alias)}`;
         item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
       } else {
@@ -158,6 +160,13 @@ class DedicatedStatusBarManager {
 
     // Check if alias passes any filter
     return filters.some(filter => simpleGlobMatch(alias, filter));
+  }
+
+  /**
+   * Returns true if at least one dedicated item is visible (passes filter)
+   */
+  hasAnyVisibleDedicatedItem(): boolean {
+    return Array.from(this.dedicatedItems.keys()).some(alias => this.hasVisibleDedicatedItem(alias));
   }
 
   /**
@@ -383,6 +392,20 @@ function getNormalizedOrgFilters(): string[] {
   return config.get('orgFilters', []);
 }
 
+type HighlightMode = 'never' | 'whenDedicatedVisible' | 'always';
+
+/**
+ * Reads highlight mode from config (supports legacy boolean: true -> always, false -> never)
+ */
+function getHighlightMode(): HighlightMode {
+  const config = vscode.workspace.getConfiguration('salesforceOrgQuickPick');
+  const raw = config.get<boolean | HighlightMode>('highlightCurrentTargetOrgMode', 'always');
+  if (raw === true) return 'always';
+  if (raw === false) return 'never';
+  if (raw === 'whenDedicatedVisible' || raw === 'never' || raw === 'always') return raw;
+  return 'always';
+}
+
 /**
  * Gets the display label for an alias (short label if configured, otherwise the alias itself)
  * @param alias The org alias
@@ -459,46 +482,16 @@ function getCurrentDefaultOrg(): string | null {
 }
 
 /**
- * Checks if the current workspace is a Salesforce project
- * @returns True if sfdx-project.json exists in the workspace root
- */
-function isSalesforceProject(): boolean {
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders || workspaceFolders.length === 0) {
-    return false;
-  }
-
-  const workspaceRoot = workspaceFolders[0].uri.fsPath;
-  const sfdxProjectFile = path.join(workspaceRoot, 'sfdx-project.json');
-
-  return fs.existsSync(sfdxProjectFile);
-}
-
-/**
  * Updates the status bar based on current default org and project type
  * @param statusBarItem The status bar item to update
  * @param openOrgItem The open org status bar item to update
  */
 function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgItem?: vscode.StatusBarItem, dedicatedManager?: DedicatedStatusBarManager) {
-  const isSfProject = isSalesforceProject();
   const defaultOrg = getCurrentDefaultOrg();
 
   // Always reset to normal state (remove warning colors)
   statusBarItem.backgroundColor = undefined;
 
-  if (!isSfProject) {
-    // Hide status bar if not a Salesforce project
-    statusBarItem.hide();
-    if (openOrgItem) {
-      openOrgItem.hide();
-    }
-    if (dedicatedManager) {
-      dedicatedManager.hideAll();
-    }
-    return;
-  }
-
-  // It's a Salesforce project, show status bar
   if (defaultOrg) {
     // Check if it's an alias or username
     const { aliasMap } = getSalesforceAliases();
@@ -510,10 +503,12 @@ function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgI
     const displayLabel = getAliasDisplayLabel(alias);
     statusBarItem.text = hideLabel ? '$(cloud)' : `$(cloud) ${displayLabel}`;
 
-    // Apply highlight color to main picker if setting is enabled and no visible dedicated button exists
-    const highlightCurrent = config.get('highlightCurrentTargetOrgDedicatedButton', true);
+    // Apply highlight color to main picker based on mode: only "always" highlights main when no dedicated visible
+    const highlightMode = getHighlightMode();
     const hasVisibleDedicated = dedicatedManager && dedicatedManager.hasVisibleDedicatedItem(alias);
-    if (highlightCurrent && !hasVisibleDedicated) {
+    const shouldHighlightMain =
+      highlightMode === 'always' && !hasVisibleDedicated;
+    if (shouldHighlightMain) {
       statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
     } else {
       statusBarItem.backgroundColor = undefined;
@@ -895,20 +890,9 @@ function initializeExtension(context: vscode.ExtensionContext) {
       updateTooltip();
       updateStatusBarFromConfig(statusBarItem, openOrgItem, dedicatedManager);
 
-      // Reorder dedicated items if orgFilters changed
+      // Reorder dedicated items if orgFilters changed; then re-apply full status so highlight is not lost
       if (event.affectsConfiguration('salesforceOrgQuickPick.orgFilters')) {
         dedicatedManager.reorderItems();
-      }
-
-      // Re-apply highlighting if highlight setting changed
-      if (event.affectsConfiguration('salesforceOrgQuickPick.highlightCurrentTargetOrgDedicatedButton')) {
-        const defaultOrg = getCurrentDefaultOrg();
-        if (defaultOrg && dedicatedManager) {
-          const { aliasMap } = getSalesforceAliases();
-          const currentUsername = aliasMap.get(defaultOrg) || defaultOrg;
-          dedicatedManager.updateIcons(currentUsername, aliasMap);
-        }
-        // Also update main picker highlighting
         updateStatusBarFromConfig(statusBarItem, openOrgItem, dedicatedManager);
       }
     }
@@ -960,21 +944,6 @@ function initializeExtension(context: vscode.ExtensionContext) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  // Early exit: if not a Salesforce project, maintain minimal footprint
-  if (!isSalesforceProject()) {
-    // Only register workspace folder change listener to detect if user opens a Salesforce project later
-    const workspaceChangeDisposable = vscode.workspace.onDidChangeWorkspaceFolders(() => {
-      if (isSalesforceProject()) {
-        // Switched to a Salesforce project, reload window to fully initialize extension
-        vscode.commands.executeCommand('workbench.action.reloadWindow');
-      }
-    });
-
-    context.subscriptions.push(workspaceChangeDisposable);
-    return; // Exit early - no memory/resources consumed
-  }
-
-  // It's a Salesforce project, proceed with full initialization
   initializeExtension(context);
 }
 
