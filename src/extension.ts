@@ -3,7 +3,6 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { minimatch } from 'minimatch';
 
 // Logging utility function
 function log(message: string) {
@@ -53,8 +52,8 @@ class DedicatedStatusBarManager {
 
     // Sort persisted orgs by their order in the filters array
     const sortedOrgs = persistedOrgs.sort((a, b) => {
-      const indexA = filters.findIndex(f => minimatch(a, f));
-      const indexB = filters.findIndex(f => minimatch(b, f));
+      const indexA = filters.findIndex(f => simpleGlobMatch(a, f));
+      const indexB = filters.findIndex(f => simpleGlobMatch(b, f));
       // If not found in filters, put at the end (index -1 becomes a large number)
       const orderA = indexA === -1 ? Number.MAX_SAFE_INTEGER : indexA;
       const orderB = indexB === -1 ? Number.MAX_SAFE_INTEGER : indexB;
@@ -77,7 +76,7 @@ class DedicatedStatusBarManager {
     }
 
     const filters = getNormalizedOrgFilters();
-    const order = filters.findIndex(f => minimatch(alias, f));
+    const order = filters.findIndex(f => simpleGlobMatch(alias, f));
 
     // Calculate priority based on order (higher order = higher priority)
     // If not found in filters (-1), use a low priority (high number)
@@ -151,7 +150,7 @@ class DedicatedStatusBarManager {
     const filters = getNormalizedOrgFilters();
 
     this.dedicatedItems.forEach((item, alias) => {
-      const order = filters.findIndex(f => minimatch(alias, f));
+      const order = filters.findIndex(f => simpleGlobMatch(alias, f));
       const newPriority = order === -1 ? 50 : 50 + order;
 
       // Recreate the item with new priority
@@ -360,7 +359,7 @@ function filterAliases(aliases: string[]): string[] {
     // Check if alias matches any of the filter patterns
     const matchesAnyFilter = filters.some(filter => {
       try {
-        const matches = minimatch(alias, filter);
+        const matches = simpleGlobMatch(alias, filter);
         return matches;
       } catch (error) {
         // If pattern is invalid, ignore it
@@ -892,5 +891,19 @@ export function activate(context: vscode.ExtensionContext) {
   // It's a Salesforce project, proceed with full initialization
   initializeExtension(context);
 }
+
+function simpleGlobMatch(text: string, pattern: string): boolean {
+  // Escape de caràcters especials de RegExp
+  const escaped = pattern.replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&');
+  // Converteix * i ? a equivalents de RegExp
+  const regexPattern = '^' + escaped
+    .replace(/\\\*/g, '.*')   // *  → .*
+    .replace(/\\\?/g, '.')    // ?  → .
+  + '$';
+
+  const regex = new RegExp(regexPattern);
+  return regex.test(text);
+}
+
 
 export function deactivate() {}

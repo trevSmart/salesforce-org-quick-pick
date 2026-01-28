@@ -1,20 +1,27 @@
 # Salesforce Org Quick Pick
 
-Quickly switch between Salesforce orgs from the status bar without breaking your flow.
+A replacement for the Salesforce Org Management status bar org picker.
 
 ![Salesforce Org Quick Pick](resources/screenshot.png)
 
 ## Features
 
-- **Status bar integration** for quick org switching
-- **Interactive tooltip** with clickable org aliases on hover
-- **Configurable filtering** with glob patterns and include/exclude modes
-- **Automatic sync** with Salesforce CLI default org
-- **Custom labels** for org aliases in status bar
-- **Browser integration** with multiple browser support
-- **Dedicated quick access items** for frequently used orgs
-- **Command center picker** with search functionality
-- **Cross-platform support** (macOS, Windows, Linux)
+- **Show only orgs relevant to the current project**
+
+  Easily find the org you need by showing only those that are relevant to the current project.
+
+- **Dedicated status bar buttons for your most used orgs**
+
+  Quickly switch to your most used orgs from the status bar without breaking your flow. Use custom alias labels to avoid cluttering the status bar.
+
+- **Choose the browser you want to use to open orgs**
+
+  Use your preferred browser to open Salesforce when different from the default one.
+
+- **Automatic sync with Salesforce Org Management**
+
+  The extension updates its UI when switching orgs via Salesforce Org Management picker.
+
 
 ## Configuration
 
