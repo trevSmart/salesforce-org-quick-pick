@@ -2,7 +2,7 @@
 
 A replacement for the Salesforce Org Management status bar org picker.
 
-![Salesforce Org Quick Pick](resources/screenshot.png)
+![Salesforce Org Quick Pick](resources/screenshot1.png)
 
 ## Features
 
@@ -12,7 +12,10 @@ A replacement for the Salesforce Org Management status bar org picker.
 
 - **Dedicated status bar buttons for your most used orgs**
 
-  Quickly switch to your most used orgs from the status bar without breaking your flow. Use custom alias labels to avoid cluttering the status bar.
+  Quickly switch to your most used orgs from dedicated status bar buttons without breaking your flow. You can set short names for these buttons to avoid cluttering your status bar.
+
+  ![Salesforce Org Quick Pick](resources/screenshot2.png)
+
 
 - **Choose the browser you want to use to open orgs**
 
@@ -21,7 +24,6 @@ A replacement for the Salesforce Org Management status bar org picker.
 - **Automatic sync with Salesforce Org Management**
 
   The extension updates its UI when switching orgs via Salesforce Org Management picker.
-
 
 ## Configuration
 

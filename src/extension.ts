@@ -475,7 +475,7 @@ function updateStatusBarFromConfig(statusBarItem: vscode.StatusBarItem, openOrgI
       dedicatedManager.updateIcons(currentUsername, aliasMap);
     }
   } else {
-    statusBarItem.text = 'Pick org';
+    statusBarItem.text = '$(cloud) Pick org';
 
     // Hide open org button when no org is selected
     if (openOrgItem) {
@@ -656,7 +656,7 @@ function initializeExtension(context: vscode.ExtensionContext) {
           },
           {
             iconPath: dedicatedManager.hasDedicatedItem(alias) ? new vscode.ThemeIcon('remove') : new vscode.ThemeIcon('add'),
-            tooltip: dedicatedManager.hasDedicatedItem(alias) ? 'Remove quick access' : 'Add quick access'
+            tooltip: dedicatedManager.hasDedicatedItem(alias) ? 'Remove dedicated button from the status bar' : 'Add dedicated button to the status bar'
           }
         ]
       };
@@ -723,7 +723,7 @@ function initializeExtension(context: vscode.ExtensionContext) {
                     item.buttons![0],
                     {
                       iconPath: dedicatedManager.hasDedicatedItem(alias) ? new vscode.ThemeIcon('remove') : new vscode.ThemeIcon('add'),
-                      tooltip: dedicatedManager.hasDedicatedItem(alias) ? 'Remove quick access' : 'Add quick access'
+                      tooltip: dedicatedManager.hasDedicatedItem(alias) ? 'Remove dedicated button from the status bar' : 'Add dedicated button to the status bar'
                     }
                   ]
                 };
