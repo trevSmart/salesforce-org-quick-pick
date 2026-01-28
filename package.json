@@ -121,10 +121,9 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "bump-version": "node -e \"const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); const [major, minor, patch] = pkg.version.split('.').map(Number); pkg.version = major + '.' + minor + '.' + (patch + 1); fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2)); console.log('Version bumped to', pkg.version);\"",
-    "package": "npm run bump-version && mkdir -p dist && npx vsce package --out dist",
+    "package": "mkdir -p dist && npx vsce package --out dist",
     "clean": "rm -rf dist",
-    "install-extension": "npm run bump-version && npm run compile && npm run clean && npm run package && cursor --install-extension dist/salesforce-org-quick-pick-*.vsix --force"
+    "install-extension": "npm run compile && npm run clean && npm run package && cursor --install-extension dist/salesforce-org-quick-pick-*.vsix --force"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.1",

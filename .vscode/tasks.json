@@ -31,7 +31,6 @@
       "script": "install-extension",
       "problemMatcher": [],
       "label": "npm: install-extension",
-      "detail": "npm run bump-version && npm run compile && npm run clean && npm run package && cursor --install-extension dist/salesforce-org-quick-pick-*.vsix --force",
       "group": {
         "kind": "build",
         "isDefault": true
