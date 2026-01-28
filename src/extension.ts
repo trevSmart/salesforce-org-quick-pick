@@ -702,11 +702,14 @@ function initializeExtension(context: vscode.ExtensionContext) {
     const filteredCurrentAliases = filterAliases(currentAliases);
 
     // Create QuickPick items with alias as label and username as subtitle
+    const currentDefaultOrg = getCurrentDefaultOrg();
     const quickPickItems = filteredCurrentAliases.map(alias => {
       const username = aliasMap.get(alias) || alias;
+      const isCurrentTargetOrg = currentDefaultOrg === alias || currentDefaultOrg === username;
       return {
         label: alias,
         detail: username,
+        iconPath: new vscode.ThemeIcon(isCurrentTargetOrg ? 'plug' : 'cloud'),
         buttons: [
           {
             iconPath: new vscode.ThemeIcon('window'),
