@@ -1,0 +1,55 @@
+name: Security - Gitleaks Secret Scan
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  gitleaks:
+    name: Scan for Secrets
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches and tags
+      
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Optional: for commercial use
+        with:
+          config-path: gitleaks.toml
+      
+      - name: Upload Gitleaks Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: |
+            gitleaks-report.json
+            gitleaks-report.sarif
+          retention-days: 30
+      
+      - name: Comment on PR (if secrets found)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⛔ **Gitleaks has detected potential secrets in this PR!**\n\n' +
+                    'Please review the workflow logs and remove any sensitive data before merging.\n\n' +
+                    'If these are false positives, add them to `.gitleaksignore` or update the allowlist in `gitleaks.toml`.'
+            })

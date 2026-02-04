@@ -52,6 +52,32 @@ A replacement for the Salesforce Org Management status bar org picker.
 
 - **`salesforceOrgQuickPick.showOpenOrgButton`**: Show _Open Org in browser_ button in status bar
 
+## Development & Publishing
+
+### Environment Variables
+
+This extension uses environment variables for publishing tokens. **Never commit these to version control.**
+
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Fill in your tokens:
+   - `VSCE_TOKEN`: Get from [Visual Studio Marketplace](https://marketplace.visualstudio.com/manage/publishers/)
+   - `OPEN_VSX_TOKEN`: Get from [Open VSX Registry](https://open-vsx.org/user-settings/tokens)
+
+3. The `.env` file is already in `.gitignore` and should **never** be committed.
+
+### Security Best Practices
+
+- **Never commit secrets**: Always use environment variables or GitHub Secrets for sensitive data
+- **Rotate tokens regularly**: Change your publishing tokens periodically
+- **Use minimal permissions**: Create tokens with only the permissions needed
+- **Review before commit**: Check that no secrets are in your staged files
+
+For more information on security, see [SECURITY_REMEDIATION.md](SECURITY_REMEDIATION.md).
+
 ## License
 
 This project is licensed under the MIT License.
